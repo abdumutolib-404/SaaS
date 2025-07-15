@@ -2,7 +2,11 @@ declare class DatabaseManager {
     private db;
     constructor();
     private init;
-    catch(error: any): void;
+    run(sql: string, params?: any[]): void;
+    get(sql: string, params?: any[]): any;
+    all(sql: string, params?: any[]): any[];
+    transaction(fn: () => void): () => void;
+    close(): void;
 }
 export declare const database: DatabaseManager;
 export {};
