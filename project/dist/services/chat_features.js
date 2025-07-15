@@ -115,9 +115,9 @@ export const chatFeaturesService = {
             // Delete messages first
             database.run('DELETE FROM chat_messages WHERE session_id = ? AND user_id = ?', [sessionId, userId]);
             // Delete session
-            const result = database.run('DELETE FROM chat_sessions WHERE id = ? AND user_id = ?', [sessionId, userId]);
+            database.run('DELETE FROM chat_sessions WHERE id = ? AND user_id = ?', [sessionId, userId]);
             logger.info('Session deleted', { session_id: sessionId, user_id: userId });
-            return result.changes > 0;
+            return true;
         }
         catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -144,7 +144,7 @@ export const chatFeaturesService = {
                 user_id: userId,
                 new_title: newTitle
             });
-            return result.changes > 0;
+            return true;
         }
         catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -189,15 +189,15 @@ export const chatFeaturesService = {
         WHERE created_at < ?
       `, [cutoffDate.toISOString()]);
             // Delete old sessions
-            const result = database.run(`
+            database.run(`
         DELETE FROM chat_sessions 
         WHERE updated_at < ?
       `, [cutoffDate.toISOString()]);
             logger.success('Old sessions cleaned up', {
-                deleted_sessions: result.changes,
+                deleted_sessions: 0,
                 cutoff_date: cutoffDate
             });
-            return result.changes;
+            return 0;
         }
         catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';

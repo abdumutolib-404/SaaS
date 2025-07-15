@@ -327,7 +327,7 @@ export const smartFeaturesService = {
             if (grouped.topic_interest) {
                 profile.top_interests = grouped.topic_interest
                     .slice(0, 5)
-                    .map(p => ({ topic: p.preference_value, confidence: p.confidence }));
+                    .map((p) => ({ topic: p.preference_value, confidence: p.confidence }));
             }
             // Language preference
             if (grouped.language && grouped.language.length > 0) {
