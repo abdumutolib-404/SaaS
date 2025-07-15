@@ -295,7 +295,7 @@ export class TelegramFormatter {
   }
 
   /**
-   * Format available promocodes
+   * Format available promocodes - Enhanced
    */
   static formatAvailablePromocodes(promocodes: any[]): string {
     const lines = [
@@ -308,10 +308,36 @@ export class TelegramFormatter {
     } else {
       promocodes.forEach((promo, index) => {
         const remaining = promo.max_usage - promo.current_usage;
+        const typeEmoji = {
+          'TOKENS': '💰',
+          'TTS': '🔊',
+          'STT': '🎤',
+          'PRO': '💎',
+          'PREMIUM': '🌟'
+        }[promo.type] || '🎫';
+
         lines.push(
-          `${index + 1}. ${this.bold(promo.code)}`,
-          `   🔥 Kunlik: +${promo.daily_tokens}`,
-          `   💎 Umumiy: +${promo.total_tokens}`,
+          `${index + 1}. ${typeEmoji} ${this.bold(promo.code)}`,
+          `   📝 ${promo.description || 'Mukofot'}`,
+          ''
+        );
+
+        if (promo.type === 'TOKENS') {
+          lines.push(
+            `   🔥 Kunlik: +${promo.daily_tokens}`,
+            `   💎 Umumiy: +${promo.total_tokens}`
+          );
+        } else if (promo.type === 'TTS') {
+          lines.push(`   🔊 TTS: +${promo.tts_limit} ovoz`);
+        } else if (promo.type === 'STT') {
+          lines.push(`   🎤 STT: +${promo.stt_limit} STT`);
+        } else if (promo.type === 'PRO') {
+          lines.push(`   💎 PRO: ${promo.pro_days} kun`);
+        } else if (promo.type === 'PREMIUM') {
+          lines.push(`   🌟 Plan: ${promo.plan_name}`);
+        }
+
+        lines.push(
           `   📊 Qolgan: ${remaining}/${promo.max_usage}`,
           ''
         );
@@ -327,6 +353,56 @@ export class TelegramFormatter {
     );
 
     return lines.join('\n');
+  }
+
+  /**
+   * Format image generation result
+   */
+  static formatImageGenerated(prompt: string, remaining: number, limit: number): string {
+    return [
+      this.formatSuccess('🖼️ Rasm muvaffaqiyatli yaratildi!'),
+      '',
+      this.bold('📝 Prompt:'),
+      this.code(prompt.substring(0, 100) + (prompt.length > 100 ? '...' : '')),
+      '',
+      `📊 Qolgan: ${remaining}/${limit} rasm`,
+      `📅 Keyingi reset: Keyingi oy`,
+      '',
+      this.formatInfo('💡 Bepul Pollinations API ishlatildi!')
+    ].join('\n');
+  }
+
+  /**
+   * Format admin promokod creation guide
+   */
+  static formatAdminPromocodeGuide(): string {
+    return [
+      this.bold('🎫 Promokod yaratish:'),
+      '',
+      this.bold('Promokod turlari:'),
+      '',
+      this.code('1. TOKENS') + ' - Token berish',
+      '   Format: /create_promo <kod> TOKENS <daily> <total> <max_usage> [tavsif]',
+      '   Misol: /create_promo BONUS2025 TOKENS 1000 5000 100 "Yangi yil bonusi"',
+      '',
+      this.code('2. TTS') + ' - Ovoz yaratish limit',
+      '   Format: /create_promo <kod> TTS <limit> <max_usage> [tavsif]',
+      '   Misol: /create_promo VOICE50 TTS 5 50 "Ovoz bonusi"',
+      '',
+      this.code('3. STT') + ' - Nutq tanish limit',
+      '   Format: /create_promo <kod> STT <limit> <max_usage> [tavsif]',
+      '   Misol: /create_promo SPEECH50 STT 5 50 "STT bonusi"',
+      '',
+      this.code('4. PRO') + ' - PRO status berish',
+      '   Format: /create_promo <kod> PRO <kunlar> <max_usage> [tavsif]',
+      '   Misol: /create_promo PRO7 PRO 7 25 "7 kunlik PRO"',
+      '',
+      this.code('5. PREMIUM') + ' - Plan o\'zgartirish',
+      '   Format: /create_promo <kod> PREMIUM <plan> <max_usage> [tavsif]',
+      '   Misol: /create_promo PREM30 PREMIUM PREMIUM 10 "Premium plan"',
+      '',
+      this.formatWarning('Diqqat: Promokod yaratilgandan keyin o\'zgartirib bo\'lmaydi!')
+    ].join('\n');
   }
 
   /**
