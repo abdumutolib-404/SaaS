@@ -36,6 +36,7 @@ export interface Model {
   id: string;
   name: string;
   provider: string;
+  category: string;
   max_tokens: number;
   cost_per_token: number;
   is_active: boolean;
