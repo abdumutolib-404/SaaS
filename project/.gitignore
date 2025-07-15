@@ -1,0 +1,9 @@
+node_modules/
+.env
+dist/
+*.db
+venv/
+yarn.lock
+package-lock.json
+vosk-model-small-en-us-0.15
+vosk-model-small-ru-0.22
