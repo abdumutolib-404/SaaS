@@ -625,8 +625,8 @@ bot.command('change_plan', async (ctx) => {
   }
 });
 
-// Add promo command - FIXED
-bot.command('add_promo', async (ctx) => {
+// Enhanced admin promocode creation command
+bot.command('create_promo', async (ctx) => {
   if (!isAdmin(ctx.from.id)) {
     await safeReply(ctx, TelegramFormatter.formatError('Sizda admin huquqi yo\'q.'));
     return;
@@ -634,36 +634,97 @@ bot.command('add_promo', async (ctx) => {
 
   try {
     const args = ctx.message.text.split(' ').slice(1);
-    if (args.length !== 4) {
-      await safeReply(ctx, 
-        TelegramFormatter.formatError('Format: /add_promo <code> <daily_tokens> <total_tokens> <max_usage>') + '\n\n' +
-        TelegramFormatter.bold('Misol:') + '\n' +
-        TelegramFormatter.code('/add_promo HELLO2025 1000 5000 100')
-      );
+    if (args.length < 4) {
+      await safeReply(ctx, TelegramFormatter.formatAdminPromocodeGuide());
       return;
     }
 
-    const [code, dailyTokensStr, totalTokensStr, maxUsageStr] = args;
-    const dailyTokens = parseInt(dailyTokensStr);
-    const totalTokens = parseInt(totalTokensStr);
-    const maxUsage = parseInt(maxUsageStr);
-
-    if (isNaN(dailyTokens) || isNaN(totalTokens) || isNaN(maxUsage)) {
-      await safeReply(ctx, TelegramFormatter.formatError('Noto\'g\'ri format. Raqamlar kiriting.'));
+    const [code, type, ...params] = args;
+    const validTypes = ['TOKENS', 'TTS', 'STT', 'PRO', 'PREMIUM'];
+    
+    if (!validTypes.includes(type.toUpperCase())) {
+      await safeReply(ctx, TelegramFormatter.formatError('Noto\'g\'ri promokod turi. Faqat: TOKENS, TTS, STT, PRO, PREMIUM'));
       return;
     }
 
-    await promocodeService.createPromocode(code.toUpperCase(), dailyTokens, totalTokens, maxUsage, ctx.from.id);
-    await safeReply(ctx, TelegramFormatter.formatSuccess(
-      `Promokod yaratildi: ${code.toUpperCase()}\n\n` +
-      `🔥 Kunlik: ${dailyTokens}\n` +
-      `💎 Umumiy: ${totalTokens}\n` +
-      `📊 Maksimal foydalanish: ${maxUsage}`
-    ));
+    let promocodeData: any = {
+      code: code.toUpperCase(),
+      type: type.toUpperCase(),
+      created_by: ctx.from.id
+    };
+
+    switch (type.toUpperCase()) {
+      case 'TOKENS':
+        if (params.length < 3) {
+          await safeReply(ctx, TelegramFormatter.formatError('Format: /create_promo <kod> TOKENS <daily> <total> <max_usage> [tavsif]'));
+          return;
+        }
+        promocodeData.daily_tokens = parseInt(params[0]);
+        promocodeData.total_tokens = parseInt(params[1]);
+        promocodeData.max_usage = parseInt(params[2]);
+        promocodeData.description = params.slice(3).join(' ') || `${params[0]} kunlik, ${params[1]} umumiy token`;
+        break;
+
+      case 'TTS':
+        if (params.length < 2) {
+          await safeReply(ctx, TelegramFormatter.formatError('Format: /create_promo <kod> TTS <limit> <max_usage> [tavsif]'));
+          return;
+        }
+        promocodeData.tts_limit = parseInt(params[0]);
+        promocodeData.max_usage = parseInt(params[1]);
+        promocodeData.description = params.slice(2).join(' ') || `${params[0]} TTS ovoz yaratish`;
+        break;
+
+      case 'STT':
+        if (params.length < 2) {
+          await safeReply(ctx, TelegramFormatter.formatError('Format: /create_promo <kod> STT <limit> <max_usage> [tavsif]'));
+          return;
+        }
+        promocodeData.stt_limit = parseInt(params[0]);
+        promocodeData.max_usage = parseInt(params[1]);
+        promocodeData.description = params.slice(2).join(' ') || `${params[0]} STT nutq tanish`;
+        break;
+
+      case 'PRO':
+        if (params.length < 2) {
+          await safeReply(ctx, TelegramFormatter.formatError('Format: /create_promo <kod> PRO <kunlar> <max_usage> [tavsif]'));
+          return;
+        }
+        promocodeData.pro_days = parseInt(params[0]);
+        promocodeData.max_usage = parseInt(params[1]);
+        promocodeData.description = params.slice(2).join(' ') || `${params[0]} kunlik PRO status`;
+        break;
+
+      case 'PREMIUM':
+        if (params.length < 2) {
+          await safeReply(ctx, TelegramFormatter.formatError('Format: /create_promo <kod> PREMIUM <plan> <max_usage> [tavsif]'));
+          return;
+        }
+        promocodeData.plan_name = params[0].toUpperCase();
+        promocodeData.max_usage = parseInt(params[1]);
+        promocodeData.description = params.slice(2).join(' ') || `${params[0]} plan o'tkazish`;
+        break;
+    }
+
+    await promocodeService.createPromocode(promocodeData);
+    
+    let successMessage = `✅ Promokod yaratildi: ${code.toUpperCase()}\n\n`;
+    successMessage += `🎫 Tur: ${type.toUpperCase()}\n`;
+    successMessage += `📝 Tavsif: ${promocodeData.description}\n`;
+    successMessage += `📊 Maksimal foydalanish: ${promocodeData.max_usage}\n`;
+    
+    if (promocodeData.daily_tokens) successMessage += `🔥 Kunlik tokenlar: ${promocodeData.daily_tokens}\n`;
+    if (promocodeData.total_tokens) successMessage += `💎 Umumiy tokenlar: ${promocodeData.total_tokens}\n`;
+    if (promocodeData.tts_limit) successMessage += `🔊 TTS limit: ${promocodeData.tts_limit}\n`;
+    if (promocodeData.stt_limit) successMessage += `🎤 STT limit: ${promocodeData.stt_limit}\n`;
+    if (promocodeData.pro_days) successMessage += `💎 PRO kunlar: ${promocodeData.pro_days}\n`;
+    if (promocodeData.plan_name) successMessage += `🌟 Plan: ${promocodeData.plan_name}\n`;
+
+    await safeReply(ctx, successMessage);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.error('Add promo command error', { error: errorMessage, user_id: ctx.from?.id });
-    await safeReply(ctx, TelegramFormatter.formatError('Promokod yaratishda xatolik yuz berdi.'));
+    logger.error('Create promo command error', { error: errorMessage, user_id: ctx.from?.id });
+    await safeReply(ctx, TelegramFormatter.formatError('Promokod yaratishda xatolik yuz berdi: ' + errorMessage));
   }
 });
 
