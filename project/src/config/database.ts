@@ -430,6 +430,7 @@ class DatabaseManager {
 
       // Insert default promocodes if they don't exist
       const existingPromocodes = this.db.prepare('SELECT COUNT(*) as count FROM promocodes').get() as any;
+      if (existingPromocodes.count === 0) {
         const promocodes = [
           ['WELCOME2025', 'TOKENS', 'Yangi foydalanuvchilar uchun', 2000, 5000, 0, 0, 0, '', 1000, 0, 1, 1],
           ['BONUS2025', 'TOKENS', 'Bonus tokenlar', 3000, 10000, 0, 0, 0, '', 500, 0, 1, 1],
