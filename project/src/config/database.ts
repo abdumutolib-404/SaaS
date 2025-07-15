@@ -353,9 +353,9 @@ class DatabaseManager {
       if (existingPlans.count === 0) {
         const plans = [
           ['FREE', '🆓 Bepul Plan', 3000, 20000, 5, 3, 3, 0, 0, 0, 1],
-          ['PRO', '💎 Pro Plan', 15000, 100000, 20, 10, 10, 1, 1, 9900, 1],
-          ['PREMIUM', '🌟 Premium Plan', 50000, 300000, 50, 25, 25, 1, 1, 19900, 1],
-          ['ENTERPRISE', '🏢 Enterprise Plan', 200000, 1000000, 200, 100, 100, 1, 1, 49900, 1]
+          ['PRO', '💎 Pro Plan', 15000, 100000, 20, 10, 10, 1, 1, 15000, 1],
+          ['PREMIUM', '🌟 Premium Plan', 50000, 300000, 50, 25, 25, 1, 1, 25000, 1],
+          ['ENTERPRISE', '🏢 Enterprise Plan', 200000, 1000000, 200, 100, 100, 1, 1, 50000, 1]
         ];
 
         const insertPlan = this.db.prepare(`
