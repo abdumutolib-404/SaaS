@@ -372,22 +372,26 @@ class DatabaseManager {
       const existingPromocodes = this.db.prepare('SELECT COUNT(*) as count FROM promocodes').get() as any;
       if (existingPromocodes.count === 0) {
         const promocodes = [
-          ['WELCOME2025', 2000, 5000, 1000, 0, 1, 1],
-          ['BONUS2025', 3000, 10000, 500, 0, 1, 1],
-          ['PREMIUM50', 5000, 20000, 100, 0, 1, 1],
-          ['NEWUSER', 1500, 3000, 2000, 0, 1, 1],
-          ['SPECIAL100', 10000, 50000, 50, 0, 1, 1]
+          ['WELCOME2025', 'TOKENS', 'Yangi foydalanuvchilar uchun', 2000, 5000, 0, 0, 0, '', 1000, 0, 1, 1],
+          ['BONUS2025', 'TOKENS', 'Bonus tokenlar', 3000, 10000, 0, 0, 0, '', 500, 0, 1, 1],
+          ['PREMIUM50', 'TOKENS', 'Premium tokenlar', 5000, 20000, 0, 0, 0, '', 100, 0, 1, 1],
+          ['NEWUSER', 'TOKENS', 'Yangi foydalanuvchi bonusi', 1500, 3000, 0, 0, 0, '', 2000, 0, 1, 1],
+          ['SPECIAL100', 'TOKENS', 'Maxsus bonus', 10000, 50000, 0, 0, 0, '', 50, 0, 1, 1],
+          ['VOICE2025', 'TTS', 'Ovoz yaratish bonusi', 0, 0, 5, 0, 0, '', 200, 0, 1, 1],
+          ['SPEECH2025', 'STT', 'Nutq tanish bonusi', 0, 0, 0, 5, 0, '', 200, 0, 1, 1],
+          ['PRO7DAYS', 'PRO', '7 kunlik PRO', 0, 0, 0, 0, 7, '', 50, 0, 1, 1],
+          ['PREMIUM30', 'PREMIUM', '30 kunlik PREMIUM', 0, 0, 0, 0, 0, 'PREMIUM', 20, 0, 1, 1]
         ];
 
         const insertPromocode = this.db.prepare(`
-          INSERT INTO promocodes (code, daily_tokens, total_tokens, max_usage, current_usage, is_active, created_by)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO promocodes (code, type, description, daily_tokens, total_tokens, tts_limit, stt_limit, pro_days, plan_name, max_usage, current_usage, is_active, created_by)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         for (const promo of promocodes) {
           insertPromocode.run(...promo);
         }
-        logger.database('Default promocodes created');
+        logger.database('Enhanced default promocodes created');
       }
 
       // Update existing models with PRO/FREE classification and categories
