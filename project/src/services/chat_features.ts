@@ -153,11 +153,11 @@ export const chatFeaturesService = {
         [sessionId, userId]);
       
       // Delete session
-      const result = database.run('DELETE FROM chat_sessions WHERE id = ? AND user_id = ?', 
+      database.run('DELETE FROM chat_sessions WHERE id = ? AND user_id = ?', 
         [sessionId, userId]);
 
       logger.info('Session deleted', { session_id: sessionId, user_id: userId });
-      return result.changes > 0;
+      return true;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Error deleting session', { 
