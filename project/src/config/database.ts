@@ -352,9 +352,9 @@ class DatabaseManager {
       const existingPlans = this.db.prepare('SELECT COUNT(*) as count FROM plans').get() as any;
       if (existingPlans.count === 0) {
         const plans = [
-          ['FREE', 'Free Plan', 2000, 15000, 1, 1, 1, 0, 0, 0, 1],
-          ['PRO', 'Pro Plan', 8000, 80000, 5, 3, 3, 1, 1, 8000, 1],
-          ['PREMIUM', 'Premium Plan', 12000, 150000, 10, 10, 10, 1, 1, 20000, 1]
+          ['FREE', 'Free Plan', 2000, 15000, 3, 1, 1, 0, 0, 0, 1],
+          ['PRO', 'Pro Plan', 8000, 80000, 10, 3, 3, 1, 1, 12000, 1],
+          ['PREMIUM', 'Premium Plan', 12000, 150000, 25, 10, 10, 1, 1, 25000, 1]
         ];
 
         const insertPlan = this.db.prepare(`
