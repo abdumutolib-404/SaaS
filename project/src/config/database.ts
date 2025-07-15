@@ -139,7 +139,7 @@ class DatabaseManager {
       // Check if tts_usage, stt_usage, referrals columns exist
       const statsTableInfo = this.db.pragma('table_info(user_stats)') as any[];
       const hasTTSUsage = statsTableInfo.some((col: any) => col.name === 'tts_usage');
-      const hasSTTUsage = statsTableInfo.some((col: any) => col.name === 'stt_usage');
+      const hasSTTUsageStats = statsTableInfo.some((col: any) => col.name === 'stt_usage');
       const hasReferrals = statsTableInfo.some((col: any) => col.name === 'referrals');
 
       if (!hasTTSUsage) {
@@ -147,7 +147,7 @@ class DatabaseManager {
         logger.database('Added tts_usage column to user_stats table');
       }
 
-      if (!hasSTTUsage) {
+      if (!hasSTTUsageStats) {
         this.db.exec('ALTER TABLE user_stats ADD COLUMN stt_usage INTEGER DEFAULT 0');
         logger.database('Added stt_usage column to user_stats table');
       }
