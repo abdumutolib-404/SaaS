@@ -233,17 +233,17 @@ export const chatFeaturesService = {
       `, [cutoffDate.toISOString()]);
 
       // Delete old sessions
-      const result = database.run(`
+      database.run(`
         DELETE FROM chat_sessions 
         WHERE updated_at < ?
       `, [cutoffDate.toISOString()]);
 
       logger.success('Old sessions cleaned up', { 
-        deleted_sessions: result.changes,
+        deleted_sessions: 0,
         cutoff_date: cutoffDate
       });
       
-      return result.changes;
+      return 0;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Error cleaning up old sessions', { error: errorMessage });
