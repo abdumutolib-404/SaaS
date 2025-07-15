@@ -313,9 +313,10 @@ class DatabaseManager {
             const existingPlans = this.db.prepare('SELECT COUNT(*) as count FROM plans').get();
             if (existingPlans.count === 0) {
                 const plans = [
-                    ['FREE', 'Free Plan', 2000, 15000, 3, 1, 1, 0, 0, 0, 1],
-                    ['PRO', 'Pro Plan', 8000, 80000, 10, 3, 3, 1, 1, 12000, 1],
-                    ['PREMIUM', 'Premium Plan', 12000, 150000, 25, 10, 10, 1, 1, 25000, 1]
+                    ['FREE', '🆓 Bepul Plan', 3000, 20000, 5, 3, 3, 0, 0, 0, 1],
+                    ['PRO', '💎 Pro Plan', 15000, 100000, 20, 10, 10, 1, 1, 9900, 1],
+                    ['PREMIUM', '🌟 Premium Plan', 50000, 300000, 50, 25, 25, 1, 1, 19900, 1],
+                    ['ENTERPRISE', '🏢 Enterprise Plan', 200000, 1000000, 200, 100, 100, 1, 1, 49900, 1]
                 ];
                 const insertPlan = this.db.prepare(`
           INSERT INTO plans (name, display_name, daily_tokens, total_tokens, image_limit, tts_limit, stt_limit, pro_model_access, priority_processing, price_monthly, is_active)
@@ -324,7 +325,7 @@ class DatabaseManager {
                 for (const plan of plans) {
                     insertPlan.run(...plan);
                 }
-                logger.database('Default plans created');
+                logger.database('Enhanced plans created with competitive pricing');
             }
             // Chat sessions and messages tables
             this.db.exec(`
