@@ -5,6 +5,7 @@ import { modelService } from './model.js';
 import { rateLimitService } from './rateLimit.js';
 import { proService } from './pro.js';
 import { planService } from './plan.js';
+import { TelegramFormatter } from '../utils/formatter.js';
 import { logger } from '../utils/logger.js';
 
 export const openRouterService = {
