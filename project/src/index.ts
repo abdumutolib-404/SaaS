@@ -12,6 +12,7 @@ import { proService } from './services/pro.js';
 import { planService } from './services/plan.js';
 import { ttsService } from './services/tts.js';
 import { sttService } from './services/stt.js';
+import { imageService } from './services/image.js';
 import { TelegramFormatter } from './utils/formatter.js';
 import { KeyboardBuilder, validateKeyboard } from './utils/keyboard.js';
 import { logger } from './utils/logger.js';
@@ -297,17 +298,66 @@ bot.command('balance', async (ctx) => {
     // Get TTS/STT stats
     const ttsStats = await ttsService.getTTSStats(ctx.from.id);
     const sttStats = await sttService.getSTTStats(ctx.from.id);
+    const imageStats = await imageService.getImageStats(ctx.from.id);
     
     const balanceText = TelegramFormatter.formatBalance(user) + '\n\n' +
-      TelegramFormatter.bold('🔊 TTS/STT Limitlar:') + '\n' +
+      TelegramFormatter.bold('🔊 TTS/STT/Image Limitlar:') + '\n' +
       `🔊 TTS: ${ttsStats.current_usage}/${ttsStats.limit} (oy)\n` +
-      `🎤 STT: ${sttStats.current_usage}/${sttStats.limit} (oy)`;
+      `🎤 STT: ${sttStats.current_usage}/${sttStats.limit} (oy)\n` +
+      `🖼️ Rasm: ${imageStats.current_usage}/${imageStats.limit} (oy)`;
     
     await safeReply(ctx, balanceText, KeyboardBuilder.createBackButton());
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logger.error('Balance command error', { error: errorMessage, user_id: ctx.from?.id });
     await safeReply(ctx, TelegramFormatter.formatError('Balansni olishda xatolik yuz berdi.'));
+  }
+});
+
+// Image generation command
+bot.command('image', async (ctx) => {
+  try {
+    const args = ctx.message.text.split(' ').slice(1);
+    if (args.length === 0) {
+      await safeReply(ctx, 
+        TelegramFormatter.formatError('Format: /image <tasvir>') + '\n\n' +
+        TelegramFormatter.bold('Misol:') + '\n' +
+        TelegramFormatter.code('/image quyosh va tog\'lar manzarasi') + '\n\n' +
+        TelegramFormatter.bold('Limitlar:') + '\n' +
+        '🆓 FREE: 3 rasm/oy\n' +
+        '💎 PRO: 10 rasm/oy\n' +
+        '🌟 PREMIUM: 25 rasm/oy'
+      );
+      return;
+    }
+
+    const prompt = args.join(' ');
+    await safeReply(ctx, '🖼️ Rasm yaratilmoqda... Iltimos, kuting (30-60 soniya).');
+
+    const result = await imageService.generateImage(prompt, ctx.from.id);
+    
+    if (result.success && result.imageUrl) {
+      const imageStats = await imageService.getImageStats(ctx.from.id);
+      
+      try {
+        await ctx.replyWithPhoto(result.imageUrl, {
+          caption: TelegramFormatter.formatImageGenerated(prompt, imageStats.remaining, imageStats.limit),
+          parse_mode: 'HTML'
+        });
+      } catch (photoError) {
+        // If photo fails, send as document
+        await ctx.replyWithDocument(result.imageUrl, {
+          caption: TelegramFormatter.formatImageGenerated(prompt, imageStats.remaining, imageStats.limit),
+          parse_mode: 'HTML'
+        });
+      }
+    } else {
+      await safeReply(ctx, TelegramFormatter.formatError(result.error || 'Rasm yaratishda xatolik yuz berdi.'));
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('Image command error', { error: errorMessage, user_id: ctx.from?.id });
+    await safeReply(ctx, TelegramFormatter.formatError('Rasm yaratishda xatolik yuz berdi.'));
   }
 });
 
@@ -725,11 +775,6 @@ bot.on('callback_query', async (ctx) => {
     await ctx.answerCbQuery();
 
     switch (data) {
-    // Clear any session data
-    if (userSessions.has(userId)) {
-      userSessions.delete(userId);
-    }
-    
       case 'back_to_main':
         clearSession(user.telegram_id);
         chatModes.delete(user.telegram_id);
@@ -791,11 +836,10 @@ bot.on('callback_query', async (ctx) => {
           for (const category of categories) {
             const categoryModels = freeModels.filter(m => m.category === category);
             if (categoryModels.length > 0) {
-              const categoryKey = category.replace(/\s+/g, '_').substring(0, 20); // Limit category name
+              const categoryKey = category.replace(/\s+/g, '_').substring(0, 20);
               keyboard.addButton(`🆓 ${category}`, `cat_free_${categoryKey}`);
               categoryModels.slice(0, 5).forEach(model => {
                 const emoji = user.selected_model === model.id ? '✅' : '🤖';
-                // Create shorter model identifier
                 const modelKey = model.id.length > 45 ? 
                   model.id.split('').reduce((a, b) => {
                     a = ((a << 5) - a) + b.charCodeAt(0);
@@ -841,7 +885,17 @@ bot.on('callback_query', async (ctx) => {
         break;
 
       case 'balance':
-        await safeEdit(ctx, TelegramFormatter.formatBalance(user), KeyboardBuilder.createBackButton());
+        const ttsStats = await ttsService.getTTSStats(user.telegram_id);
+        const sttStats = await sttService.getSTTStats(user.telegram_id);
+        const imageStats = await imageService.getImageStats(user.telegram_id);
+        
+        const balanceText = TelegramFormatter.formatBalance(user) + '\n\n' +
+          TelegramFormatter.bold('🔊 TTS/STT/Image Limitlar:') + '\n' +
+          `🔊 TTS: ${ttsStats.current_usage}/${ttsStats.limit} (oy)\n` +
+          `🎤 STT: ${sttStats.current_usage}/${sttStats.limit} (oy)\n` +
+          `🖼️ Rasm: ${imageStats.current_usage}/${imageStats.limit} (oy)`;
+        
+        await safeEdit(ctx, balanceText, KeyboardBuilder.createBackButton());
         break;
 
       case 'pro_stats':
@@ -860,6 +914,18 @@ bot.on('callback_query', async (ctx) => {
           '🔊 Ovozga aylantirish uchun matn kiriting:\n\n' +
           'Maksimal: 1000 belgi\n\n' +
           '💡 O\'zbek yoki ingliz tilida yozing.'
+        );
+        break;
+
+      case 'generate_image':
+        session.step = 'image_prompt';
+        const currentImageStats = await imageService.getImageStats(user.telegram_id);
+        await safeEdit(ctx, 
+          '🖼️ Rasm yaratish uchun tasvir kiriting:\n\n' +
+          'Misol: "quyosh va tog\'lar manzarasi"\n\n' +
+          `📊 Qolgan: ${currentImageStats.remaining}/${currentImageStats.limit} rasm\n` +
+          `📅 Keyingi reset: Keyingi oy\n\n` +
+          '💡 Ingliz tilida yozing (yaxshiroq natija uchun).'
         );
         break;
 
@@ -897,7 +963,7 @@ bot.on('callback_query', async (ctx) => {
         await safeEdit(ctx, TelegramFormatter.formatAdminStats(adminStats), KeyboardBuilder.createAdminPanel());
         break;
 
-      // Admin panel buttons - FIXED: All now handled
+      // Admin panel buttons
       case 'admin_stats':
         if (!isAdmin(user.telegram_id)) {
           await ctx.answerCbQuery('Sizda admin huquqi yo\'q!', { show_alert: true });
@@ -956,9 +1022,7 @@ bot.on('callback_query', async (ctx) => {
           TelegramFormatter.bold('Plan o\'zgartirish:') + '\n\n' +
           TelegramFormatter.code('/change\\_plan <user\\_id> <plan>') + '\n\n' +
           TelegramFormatter.bold('Mavjud planlar:') + '\n' +
-          '• FREE\n• PRO\n• PREMIUM\n\n' +
-          TelegramFormatter.bold('Misol:') + '\n' +
-          TelegramFormatter.code('/change\\_plan 123456789 PRO'),
+          '• FREE\n• PRO\n• PREMIUM',
           KeyboardBuilder.createBackButton()
         );
         break;
@@ -1050,7 +1114,7 @@ bot.on('callback_query', async (ctx) => {
         );
         break;
 
-      // Referral menu buttons - FIXED: All now handled
+      // Referral menu buttons
       case 'my_referral_stats':
         const myReferralStats = await referralService.getReferralStats(user.telegram_id, (await bot.telegram.getMe()).username);
         await safeEdit(ctx, TelegramFormatter.formatReferralStats(myReferralStats), KeyboardBuilder.createReferralMenu());
@@ -1190,6 +1254,30 @@ bot.on('text', async (ctx) => {
             );
           } else {
             await safeReply(ctx, TelegramFormatter.formatError(ttsResult.error || 'Ovoz yaratishda xatolik yuz berdi.'));
+          }
+          break;
+
+        case 'image_prompt':
+          clearSession(user.telegram_id);
+          await safeReply(ctx, '🖼️ Rasm yaratilmoqda... Iltimos, kuting (30-60 soniya).');
+          
+          const imageResult = await imageService.generateImage(text, user.telegram_id);
+          if (imageResult.success && imageResult.imageUrl) {
+            const imageStats = await imageService.getImageStats(user.telegram_id);
+            
+            try {
+              await ctx.replyWithPhoto(imageResult.imageUrl, {
+                caption: TelegramFormatter.formatImageGenerated(text, imageStats.remaining, imageStats.limit),
+                parse_mode: 'HTML'
+              });
+            } catch (photoError) {
+              await ctx.replyWithDocument(imageResult.imageUrl, {
+                caption: TelegramFormatter.formatImageGenerated(text, imageStats.remaining, imageStats.limit),
+                parse_mode: 'HTML'
+              });
+            }
+          } else {
+            await safeReply(ctx, TelegramFormatter.formatError(imageResult.error || 'Rasm yaratishda xatolik yuz berdi.'));
           }
           break;
 
