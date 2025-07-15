@@ -295,7 +295,8 @@ export class TelegramFormatter {
                     'STT': '🎤',
                     'PRO': '💎',
                     'PREMIUM': '🌟'
-                }[promo.type] || '🎫';
+                };
+                const emoji = typeEmoji[promo.type] || '🎫';
                 lines.push(`${index + 1}. ${typeEmoji} ${this.bold(promo.code)}`, `   📝 ${promo.description || 'Mukofot'}`, '');
                 if (promo.type === 'TOKENS') {
                     lines.push(`   🔥 Kunlik: +${promo.daily_tokens}`, `   💎 Umumiy: +${promo.total_tokens}`);
