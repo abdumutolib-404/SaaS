@@ -366,7 +366,7 @@ class DatabaseManager {
         for (const plan of plans) {
           insertPlan.run(...plan);
         }
-        logger.database('Default plans created');
+        logger.database('Enhanced plans created with competitive pricing');
       }
 
 
