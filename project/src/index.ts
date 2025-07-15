@@ -831,7 +831,9 @@ bot.on('voice', async (ctx) => {
 // Callback query handlers - FIXED: All buttons now handled
 bot.on('callback_query', async (ctx) => {
   try {
-    const data = ctx.callbackQuery.data;
+    const data = 'data' in ctx.callbackQuery ? ctx.callbackQuery.data : undefined;
+    if (!data) return;
+    
     const user = await userService.ensureUser(ctx.from);
     const userPlan = await planService.getUserPlan(user.telegram_id);
     const session = getSession(user.telegram_id);
