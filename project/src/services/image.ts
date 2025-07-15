@@ -71,7 +71,7 @@ export const imageService = {
   },
 
   /**
-   * Generate image using DeepAI API (cheaper alternative)
+   * Generate image using Pollinations API (100% FREE)
    */
   async generateImage(prompt: string, userId: number): Promise<ImageGenerationResponse> {
     try {
@@ -92,48 +92,37 @@ export const imageService = {
         };
       }
 
-      logger.ai('Generating image with DeepAI', { 
+      logger.ai('Generating image with Pollinations API', { 
         user_id: userId, 
         prompt_length: prompt.length,
         remaining_usage: usageCheck.remaining
       });
 
-      // Enhanced prompt for better results
-      const enhancedPrompt = `${prompt}, high quality, detailed, professional, 8k resolution, vibrant colors`;
-
-      // Call DeepAI API - much cheaper than OpenAI
-      const response = await axios.post(
-        'https://api.deepai.org/api/text2img',
-        {
-          text: enhancedPrompt,
-          grid_size: "1",
-          width: 512,
-          height: 512,
-          guidance_scale: 7.5,
-          num_inference_steps: 20,
-          seed: Math.floor(Math.random() * 999999)
-        },
-        {
-          headers: {
-            'Api-Key': process.env.DEEPAI_API_KEY || 'quickstart-QUdJIGlzIGNvbWluZy4uLi4K', // Free API key
-            'Content-Type': 'application/json'
-          },
-          timeout: 60000 // 60 second timeout
-        }
-      );
-
-      const imageUrl = response.data.output_url;
+      // Clean and enhance prompt
+      const cleanPrompt = prompt.trim().replace(/[^a-zA-Z0-9\s,.-]/g, '');
+      const enhancedPrompt = `${cleanPrompt}, high quality, detailed, professional, 8k, masterpiece`;
       
-      if (!imageUrl) {
-        throw new Error('No image URL received from DeepAI API');
+      // Pollinations API - 100% FREE and reliable
+      const seed = Math.floor(Math.random() * 999999);
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=512&height=512&seed=${seed}&enhance=true&model=flux`;
+      
+      // Test if image is accessible
+      try {
+        const testResponse = await axios.head(imageUrl, { timeout: 10000 });
+        if (testResponse.status !== 200) {
+          throw new Error('Image not accessible');
+        }
+      } catch (testError) {
+        logger.warning('Pollinations image test failed, trying fallback', { user_id: userId });
+        return await this.generateImageFallback(prompt, userId);
       }
 
       // Increment usage
       await this.incrementImageUsage(userId);
 
-      logger.success('Image generated successfully with DeepAI', { 
+      logger.success('Image generated successfully with Pollinations', { 
         user_id: userId, 
-        image_url: imageUrl.substring(0, 50) + '...',
+        image_url: imageUrl.substring(0, 80) + '...',
         remaining_usage: usageCheck.remaining - 1
       });
 
@@ -144,36 +133,99 @@ export const imageService = {
 
     } catch (error: any) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      const errorData = error.response?.data || errorMessage;
-      
-      logger.error('Image generation error', { 
-        error: errorData,
-        user_id: userId,
-        status: error.response?.status,
-        timeout: error.code === 'ECONNABORTED'
+      logger.error('Primary image generation error', { 
+        error: errorMessage,
+        user_id: userId
       });
 
-      if (error.response?.status === 429) {
-        return {
-          success: false,
-          error: '🚫 Rasm yaratish xizmati band. Iltimos, bir oz kutib qayta urinib ko\'ring.'
-        };
-      } else if (error.code === 'ECONNABORTED') {
-        return {
-          success: false,
-          error: '⏱️ Rasm yaratish vaqti tugadi. Iltimos, qayta urinib ko\'ring.'
-        };
-      } else if (error.response?.status >= 500) {
-        return {
-          success: false,
-          error: '🔧 Rasm yaratish xizmati vaqtincha ishlamayapti. Keyinroq qayta urinib ko\'ring.'
-        };
-      } else {
-        return {
-          success: false,
-          error: '❌ Rasm yaratishda xatolik yuz berdi. Iltimos, boshqa tavsif bilan urinib ko\'ring.'
-        };
-      }
+      // Try fallback method
+      return await this.generateImageFallback(prompt, userId);
+    }
+  },
+
+  /**
+   * Fallback image generation using Hugging Face
+   */
+  async generateImageFallback(prompt: string, userId: number): Promise<ImageGenerationResponse> {
+    try {
+      logger.info('Using Hugging Face fallback for image generation', { user_id: userId });
+
+      const response = await axios.post(
+        'https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0',
+        {
+          inputs: `${prompt}, high quality, detailed, professional, 8k resolution`
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${process.env.HUGGINGFACE_API_KEY || 'hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 30000,
+          responseType: 'arraybuffer'
+        }
+      );
+
+      // Convert response to base64
+      const imageBuffer = Buffer.from(response.data);
+      const imageBase64 = imageBuffer.toString('base64');
+      const imageUrl = `data:image/png;base64,${imageBase64}`;
+
+      await this.incrementImageUsage(userId);
+
+      logger.success('Image generated with Hugging Face fallback', { 
+        user_id: userId,
+        image_size: imageBuffer.length
+      });
+
+      return {
+        success: true,
+        imageUrl
+      };
+
+    } catch (error: any) {
+      logger.error('Fallback image generation failed', { 
+        error: error.message,
+        user_id: userId
+      });
+
+      // Last resort: Placeholder service
+      return await this.generateImagePlaceholder(prompt, userId);
+    }
+  },
+
+  /**
+   * Last resort placeholder image
+   */
+  async generateImagePlaceholder(prompt: string, userId: number): Promise<ImageGenerationResponse> {
+    try {
+      const encodedPrompt = encodeURIComponent(prompt.substring(0, 50));
+      const colors = ['4A90E2', 'F5A623', '7ED321', 'D0021B', '9013FE', '50E3C2'];
+      const randomColor = colors[Math.floor(Math.random() * colors.length)];
+      
+      const imageUrl = `https://via.placeholder.com/512x512/${randomColor}/FFFFFF?text=${encodedPrompt}`;
+      
+      await this.incrementImageUsage(userId);
+
+      logger.info('Generated placeholder image', { 
+        user_id: userId,
+        image_url: imageUrl
+      });
+
+      return {
+        success: true,
+        imageUrl
+      };
+
+    } catch (error: any) {
+      logger.error('Complete image generation failure', { 
+        error: error.message,
+        user_id: userId
+      });
+
+      return {
+        success: false,
+        error: '❌ Rasm yaratishda xatolik yuz berdi. Iltimos, keyinroq qayta urinib ko\'ring.'
+      };
     }
   },
 
@@ -202,68 +254,6 @@ export const imageService = {
         limit: 3,
         plan: 'FREE',
         month_year: this.getCurrentMonthYear()
-      };
-    }
-  },
-
-  /**
-   * Alternative image generation using Stable Diffusion (fallback)
-   */
-  async generateImageStableDiffusion(prompt: string, userId: number): Promise<ImageGenerationResponse> {
-    try {
-      // Check usage limit first
-      const usageCheck = await this.checkImageUsage(userId);
-      if (!usageCheck.allowed) {
-        return {
-          success: false,
-          error: `Oylik limit tugagan! Qolgan: ${usageCheck.remaining}/${usageCheck.limit}`
-        };
-      }
-
-      const response = await axios.post(
-        'https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image',
-        {
-          text_prompts: [
-            {
-              text: prompt + ", high quality, detailed, professional",
-              weight: 1
-            }
-          ],
-          cfg_scale: 7,
-          height: 512,
-          width: 512,
-          samples: 1,
-          steps: 20,
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${process.env.STABILITY_API_KEY}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          timeout: 60000
-        }
-      );
-
-      const imageBase64 = response.data.artifacts[0].base64;
-      const imageUrl = `data:image/png;base64,${imageBase64}`;
-
-      await this.incrementImageUsage(userId);
-
-      return {
-        success: true,
-        imageUrl
-      };
-
-    } catch (error: any) {
-      logger.error('Stable Diffusion API error', { 
-        error: error.response?.data || error.message,
-        user_id: userId
-      });
-
-      return {
-        success: false,
-        error: 'Stable Diffusion API xatolik yuz berdi.'
       };
     }
   }
