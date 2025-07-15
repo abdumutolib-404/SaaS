@@ -368,9 +368,66 @@ class DatabaseManager {
         logger.database('Default plans created');
       }
 
+      // Chat sessions and messages tables
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS chat_sessions (
+          id TEXT PRIMARY KEY,
+          user_id INTEGER NOT NULL,
+          title TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          message_count INTEGER DEFAULT 0,
+          is_active BOOLEAN DEFAULT 1,
+          FOREIGN KEY (user_id) REFERENCES users(telegram_id)
+        )
+      `);
+
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS chat_messages (
+          id TEXT PRIMARY KEY,
+          session_id TEXT NOT NULL,
+          user_id INTEGER NOT NULL,
+          role TEXT NOT NULL,
+          content TEXT NOT NULL,
+          tokens_used INTEGER DEFAULT 0,
+          model_used TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (session_id) REFERENCES chat_sessions(id),
+          FOREIGN KEY (user_id) REFERENCES users(telegram_id)
+        )
+      `);
+
+      // User preferences table for smart features
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS user_preferences (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          preference_type TEXT NOT NULL,
+          preference_value TEXT NOT NULL,
+          confidence REAL DEFAULT 0.0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(telegram_id),
+          UNIQUE(user_id, preference_type, preference_value)
+        )
+      `);
+
+      // Image usage table
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS image_usage (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          month_year TEXT NOT NULL,
+          usage_count INTEGER DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(telegram_id),
+          UNIQUE(user_id, month_year)
+        )
+      `);
+
       // Insert default promocodes if they don't exist
       const existingPromocodes = this.db.prepare('SELECT COUNT(*) as count FROM promocodes').get() as any;
-      if (existingPromocodes.count === 0) {
         const promocodes = [
           ['WELCOME2025', 'TOKENS', 'Yangi foydalanuvchilar uchun', 2000, 5000, 0, 0, 0, '', 1000, 0, 1, 1],
           ['BONUS2025', 'TOKENS', 'Bonus tokenlar', 3000, 10000, 0, 0, 0, '', 500, 0, 1, 1],
