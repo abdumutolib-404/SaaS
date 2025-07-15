@@ -308,13 +308,14 @@ export class TelegramFormatter {
     } else {
       promocodes.forEach((promo, index) => {
         const remaining = promo.max_usage - promo.current_usage;
-        const typeEmoji = {
+        const typeEmoji: { [key: string]: string } = {
           'TOKENS': '💰',
           'TTS': '🔊',
           'STT': '🎤',
           'PRO': '💎',
           'PREMIUM': '🌟'
-        }[promo.type] || '🎫';
+        };
+        const emoji = typeEmoji[promo.type] || '🎫';
 
         lines.push(
           `${index + 1}. ${typeEmoji} ${this.bold(promo.code)}`,
