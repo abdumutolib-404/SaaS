@@ -157,13 +157,19 @@ class DatabaseManager {
         logger.database('Added referrals column to user_stats table');
       }
 
-      // Promocodes table
+      // Promocodes table - Enhanced
       this.db.exec(`
         CREATE TABLE IF NOT EXISTS promocodes (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           code TEXT UNIQUE NOT NULL,
-          daily_tokens INTEGER NOT NULL,
-          total_tokens INTEGER NOT NULL,
+          type TEXT NOT NULL DEFAULT 'TOKENS',
+          description TEXT DEFAULT '',
+          daily_tokens INTEGER DEFAULT 0,
+          total_tokens INTEGER DEFAULT 0,
+          tts_limit INTEGER DEFAULT 0,
+          stt_limit INTEGER DEFAULT 0,
+          pro_days INTEGER DEFAULT 0,
+          plan_name TEXT DEFAULT '',
           max_usage INTEGER NOT NULL,
           current_usage INTEGER DEFAULT 0,
           is_active BOOLEAN DEFAULT 1,
@@ -171,6 +177,45 @@ class DatabaseManager {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `);
+
+      // Check if new columns exist in promocodes table
+      const promocodeTableInfo = this.db.pragma('table_info(promocodes)') as any[];
+      const hasType = promocodeTableInfo.some((col: any) => col.name === 'type');
+      const hasDescription = promocodeTableInfo.some((col: any) => col.name === 'description');
+      const hasTTSLimit = promocodeTableInfo.some((col: any) => col.name === 'tts_limit');
+      const hasSTTLimit = promocodeTableInfo.some((col: any) => col.name === 'stt_limit');
+      const hasProDays = promocodeTableInfo.some((col: any) => col.name === 'pro_days');
+      const hasPlanName = promocodeTableInfo.some((col: any) => col.name === 'plan_name');
+
+      if (!hasType) {
+        this.db.exec('ALTER TABLE promocodes ADD COLUMN type TEXT DEFAULT "TOKENS"');
+        logger.database('Added type column to promocodes table');
+      }
+
+      if (!hasDescription) {
+        this.db.exec('ALTER TABLE promocodes ADD COLUMN description TEXT DEFAULT ""');
+        logger.database('Added description column to promocodes table');
+      }
+
+      if (!hasTTSLimit) {
+        this.db.exec('ALTER TABLE promocodes ADD COLUMN tts_limit INTEGER DEFAULT 0');
+        logger.database('Added tts_limit column to promocodes table');
+      }
+
+      if (!hasSTTLimit) {
+        this.db.exec('ALTER TABLE promocodes ADD COLUMN stt_limit INTEGER DEFAULT 0');
+        logger.database('Added stt_limit column to promocodes table');
+      }
+
+      if (!hasProDays) {
+        this.db.exec('ALTER TABLE promocodes ADD COLUMN pro_days INTEGER DEFAULT 0');
+        logger.database('Added pro_days column to promocodes table');
+      }
+
+      if (!hasPlanName) {
+        this.db.exec('ALTER TABLE promocodes ADD COLUMN plan_name TEXT DEFAULT ""');
+        logger.database('Added plan_name column to promocodes table');
+      }
 
       // Promocode usage table
       this.db.exec(`
