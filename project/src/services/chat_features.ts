@@ -185,7 +185,7 @@ export const chatFeaturesService = {
         user_id: userId, 
         new_title: newTitle 
       });
-      return result.changes > 0;
+      return true;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Error updating session title', { 
