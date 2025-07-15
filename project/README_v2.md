@@ -147,12 +147,13 @@ npm start
 - **Formatlar**: MP3, WAV, OGG
 - **Tillar**: O'zbek, Ingliz, Rus
 
-### 📱 **Foydalanish Rejalari**
+### 📱 **Foydalanish Rejalari (Yangilangan)**
 | Reja | Kunlik Token | Umumiy Token | TTS/STT | Rasm | Narx |
 |------|--------------|--------------|---------|------|------|
-| **FREE** | 2,000 | 15,000 | 1/oy | 3/oy | Tekin |
-| **PRO** | 8,000 | 80,000 | 3/oy | 10/oy | $12/oy |
-| **PREMIUM** | 12,000 | 150,000 | 10/oy | 25/oy | $25/oy |
+| **🆓 BEPUL** | 3,000 | 20,000 | 3/oy | 5/oy | Tekin |
+| **💎 PRO** | 15,000 | 100,000 | 10/oy | 20/oy | **$9.90/oy** |
+| **🌟 PREMIUM** | 50,000 | 300,000 | 25/oy | 50/oy | **$19.90/oy** |
+| **🏢 ENTERPRISE** | 200,000 | 1,000,000 | 100/oy | 200/oy | **$49.90/oy** |
 
 ### 🎯 **Smart Features**
 - **Aqlli Takliflar**: Avtomatik javob takliflari
