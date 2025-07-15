@@ -115,9 +115,9 @@ class DatabaseManager {
 
       // Check if stt_limit column exists
       const planTableInfo = this.db.pragma('table_info(plans)') as any[];
-      const hasSTTLimit = planTableInfo.some((col: any) => col.name === 'stt_limit');
+      const hasSTTLimitPlans = planTableInfo.some((col: any) => col.name === 'stt_limit');
 
-      if (!hasSTTLimit) {
+      if (!hasSTTLimitPlans) {
         this.db.exec('ALTER TABLE plans ADD COLUMN stt_limit INTEGER DEFAULT 0');
         logger.database('Added stt_limit column to plans table');
       }
